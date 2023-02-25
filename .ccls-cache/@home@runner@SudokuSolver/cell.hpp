@@ -1,5 +1,6 @@
 #include <iostream>
 #include <set>
+#include <vector>
 
 using namespace std;
 
@@ -15,29 +16,34 @@ class Cell {
         bool assigned;
         bool assignedPossibleValue = false;
         int value;
-        set<int> possibleValues;
+        vector<int> possibleValues;
         set<int> impossibleValues;
-        set<int>::iterator currentPossibleValue;
+        int currentPossibleValueIdx;
         CellLocation location;
+        bool locationSet;
 
     public:
         Cell();
         Cell(int val);
         void assign(int val, bool clearPossibleValues);
-        void setLocation(CellLocation loc) { location = loc; }
+        bool isLocationSet() { return locationSet; }
+        void setLocation(CellLocation loc) { 
+          location = loc; 
+          locationSet = true; 
+        }
         void unassign();
         CellLocation getLocation() { return location; }
         int getValue() { return value; }
         bool isAssigned() { return assigned; }
         bool isAssignedPossibleValue() { return assignedPossibleValue; }
-        set<int>& getPossibleValues() { return possibleValues; }
+        vector<int>& getPossibleValues() { return possibleValues; }
         void addPossibleValue(int val);
         void addImpossibleValue(int val) { impossibleValues.insert(val); }
         void printPossibleValues();
-        int getCurrentPossibleValue() { return *currentPossibleValue; }
+        int getCurrentPossibleValue() { return possibleValues[currentPossibleValueIdx]; }
         bool incrementCurrentPossibleValue();
         int assignCurrentPossibleValue();
-        void clearPossibleValues() { possibleValues.clear(); }
+        void clearPossibleValues();
         void removeCurrentPossibleValue();
         void print() const;
         static CellLocation findLocation(int grid, int cellIdx) {

@@ -24,25 +24,30 @@ void Board::computePossibleValues() {
   bool noChange = false;
   int c = 0;
   while (numUnassignedCells > 0) {
+    print();
     bool startOver = false;
     for (int g = 0; g < 9; g++) {
       if (startOver) {
-        clearAllPossibleValues();
+        // clearAllPossibleValues();
         g = 0;
         startOver = false;
+        print();
       }
       Grid *grid = &grids[g];
       for (int c = 0; c < 9; c++) {
         Cell *cell = grid->getCell(c);
+        if (!cell->isLocationSet()) {
+          cell->setLocation(findLocation(cell));
+        }
         int row = getRowNum(g, c);
         int col = getColNum(g, c);
+        
         if (!cell->isAssigned()) {
-          // CellLocation loc = cell->getLocation();
-          cout << "Processing row " << row << ", col " << col << endl;
-
-          map<int, int> unassignedValues = findCommonUnassignedValues(
+          cout << "Processing cell (" << row << ", " << col << ")" << endl;
+          set<int> unassignedValues = findCommonUnassignedValues(
               grid->getUnassigedValues(), getUnassignedRowValues(row), getUnassignedColValues(col));
-          cout << "Found " << unassignedValues.size() << " common unassigned values" << endl;
+          cout << "Unassigned values: ";
+          printSet(unassignedValues);
           int singleUnassigedValue = 0;
           if (unassignedValues.size() == 0) {
             /*
@@ -95,58 +100,48 @@ void Board::computePossibleValues() {
             // Try to increment to the next possible value
             if (possibleValCell->incrementCurrentPossibleValue()) {
               // If successful, we need to add the cell value to all containers
+              CellLocation loc = findLocation(possibleValCell);
               addCellValueToContainers(possibleValCell);
+              cout << "(" << loc.row << ", " << loc.col << ") -> " << possibleValCell->getValue() << endl;
+
+              startOver = true;
+              break;
             } else {
               // If that was the last possible value for the cell,
               // we need to pop it, unassign it, then continue going down the stack.
               possibleValueCellStack.pop();
               cout << "possibleValueCellStack size: " << possibleValueCellStack.size() << endl;
               removeCellValueFromContainers(possibleValCell);
+              print();
+              possibleValCell->unassign();
               cout << "Last possible value for cell, ..." << endl;
             }
 
             startOver = true;
             break;
           } else if (unassignedValues.size() == 1) {
-            singleUnassigedValue = unassignedValues.begin()->first;
-          } else {
-            for (map<int, int>::iterator itr = unassignedValues.begin();
-                 itr != unassignedValues.end(); itr++) {
-              cell->addPossibleValue(itr->first);
-            }
-          }
-
-          if (singleUnassigedValue != 0) {
-            cell->assign(singleUnassigedValue);
+            singleUnassigedValue = *unassignedValues.begin();
+            cell->assign(singleUnassigedValue, false);
             possibleValueCellStack.push(cell);
             cout << "possibleValueCellStack size: " << possibleValueCellStack.size() << endl;
+            cout << "(" << row << ", " << col << ") -> "<< singleUnassigedValue << endl;
 
-            cout << "Assigned single possible value of " << singleUnassigedValue
-                 << " to row " << row << ", col " << col << endl;
-            print();
-
-            // Update grid values
-            grid->addValue(singleUnassigedValue);
-
-            // Update row values
-            map<int, set<int>>::iterator rowItr = rowValues.find(row);
-            if (rowItr != rowValues.end()) {
-              rowItr->second.insert(singleUnassigedValue);
-            }
-
-            // Update column values
-            map<int, set<int>>::iterator colItr = colValues.find(col);
-            if (colItr != colValues.end()) {
-              colItr->second.insert(singleUnassigedValue);
-            }
+            addCellValueToContainers(cell);
 
             startOver = true;
             break;
+          } else {
+            cell->clearPossibleValues();
+            for (set<int>::iterator itr = unassignedValues.begin();
+                 itr != unassignedValues.end(); itr++) {
+              cell->addPossibleValue(*itr);
+            }
+
+            cout << "(" << row << ", " << col << ") possible values: ";
+            cell->printPossibleValues();
           }
 
           int numPossibleValues = cell->getPossibleValues().size();
-          cout << "Possible values: ";
-          cell->printPossibleValues();
           if (!cell->isAssigned() && numPossibleValues > 1 &&
               numPossibleValues < minPossibleValues) {
             minPossibleValues = numPossibleValues;
@@ -180,9 +175,9 @@ void Board::addCellValueToContainers(Cell *cell) {
   grids[loc.grid].addValue(cellValue);
   rowValues.find(loc.row)->second.insert(cellValue);
   colValues.find(loc.col)->second.insert(cellValue);
-  cout << "Added " << cellValue << " to cell (" << loc.row << ", "
-       << loc.col << ")" << endl;
-  print();
+  // cout << "Added " << cellValue << " to cell (" << loc.row << ", "
+  //      << loc.col << ")" << endl;
+  // print();
 }
 
 void Board::removeCellValueFromContainers(Cell *cell) {
@@ -191,10 +186,8 @@ void Board::removeCellValueFromContainers(Cell *cell) {
   grids[loc.grid].removeValue(cellValue);
   rowValues.find(loc.row)->second.erase(cellValue);
   colValues.find(loc.col)->second.erase(cellValue);
-  cout << "Removed " << cellValue << " from cell (" << loc.row << ", "
-       << loc.col << ")" << endl;
   cell->unassign();
-  print();
+  cout << "(" << loc.row << ", " << loc.col << ") unassigned" << endl;
 }
 
 void Board::assignPossibleValues() {
@@ -212,8 +205,7 @@ void Board::assignPossibleValues() {
   possibleValueCellStack.push(cell);
   cell->assignCurrentPossibleValue();
 
-  cout << "Assigned possible value of " << possibleVal << " to row " << row + 1
-       << ", col " << col + 1 << endl;
+  cout << "(" << row << ", " << col << ") assigned possible value " << possibleVal << endl;
   print();
 
   minPossibleValues = numeric_limits<int>::max();
@@ -601,18 +593,21 @@ void Board::clearPossibleValues() {
   }
 }
 
-map<int, int> Board::findCommonUnassignedValues(set<int> set1, set<int> set2,
+set<int> Board::findCommonUnassignedValues(set<int> set1, set<int> set2,
                                                 set<int> set3) {
-  map<int, int> unassignedValues;
+  cout << "Grid unassigned values: ";
+  printSet(set1);
+  cout << "Row unassigned values: ";
+  printSet(set2);
+  cout << "Col unassigned values: ";
+  printSet(set3);
+  set<int> unassignedValues;
   for (int i = 1; i < 10; i++) {
-    if (set1.find(i) != set1.end() && set2.find(i) != set2.end() &&
-        set3.find(i) != set3.end()) {
-      map<int, int>::iterator itr = unassignedValues.find(i);
-      if (itr == unassignedValues.end()) {
-        unassignedValues.insert(pair<int, int>(i, 1));
-      } else {
-        itr->second++;
-      }
+    bool foundInGridValues = set1.find(i) != set1.end();
+    bool foundInRowValues = set2.find(i) != set2.end();
+    bool foundInColValues = set3.find(i) != set3.end();
+    if (foundInGridValues && foundInRowValues && foundInColValues) {
+      unassignedValues.insert(i); 
     }
   }
 

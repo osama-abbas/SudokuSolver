@@ -1,17 +1,22 @@
 #include "cell.hpp"
+#include <algorithm>
 
 Cell::Cell() {
   assigned = false;
   value = 0;
-  currentPossibleValue = possibleValues.begin();
+  currentPossibleValueIdx = -1;
 }
 
 Cell::Cell(int val) {
   assigned = true;
   value = val;
+  currentPossibleValueIdx = -1;
 }
 
 void Cell::assign(int val, bool clearPossibleValues) {
+  if (val == 0) {
+    cout << "I'm 0!" << endl;
+  }
   assigned = true;
   value = val;
   if (clearPossibleValues) {
@@ -23,10 +28,12 @@ void Cell::unassign() {
   assigned = false;
   assignedPossibleValue = false;
   value = 0;
+  possibleValues.clear();
+  currentPossibleValueIdx = -1;
 }
 
 void Cell::printPossibleValues() {
-  for (set<int>::iterator itr = possibleValues.begin();
+  for (vector<int>::iterator itr = possibleValues.begin();
        itr != possibleValues.end(); itr++) {
     cout << *itr << " ";
   }
@@ -36,10 +43,12 @@ void Cell::printPossibleValues() {
 bool Cell::incrementCurrentPossibleValue() {
   cout << "Possible values: ";
   printPossibleValues();
-  if (currentPossibleValue != possibleValues.end()) {
-    cout << "Incrementing current possible value from " << *currentPossibleValue;
-    currentPossibleValue++;
-    cout << " to " << *currentPossibleValue << endl;
+  if (currentPossibleValueIdx != -1 &&
+      currentPossibleValueIdx < possibleValues.size() - 1) {
+    cout << "Incrementing current possible value from "
+         << possibleValues[currentPossibleValueIdx];
+    currentPossibleValueIdx++;
+    cout << " to " << possibleValues[currentPossibleValueIdx] << endl;
     assignCurrentPossibleValue();
     return true;
   } else {
@@ -49,22 +58,39 @@ bool Cell::incrementCurrentPossibleValue() {
 }
 
 int Cell::assignCurrentPossibleValue() {
-  assign(*currentPossibleValue, false);
+  cout << "Assigning current possible value " << " to "
+       << possibleValues[currentPossibleValueIdx] << endl;
+  assign(possibleValues[currentPossibleValueIdx], false);
   assignedPossibleValue = true;
-  return *currentPossibleValue;
+  return possibleValues[currentPossibleValueIdx];
 }
 
 void Cell::addPossibleValue(int val) {
-  if (impossibleValues.find(val) == impossibleValues.end()) {
-    possibleValues.insert(val);
-    currentPossibleValue = possibleValues.begin();
+  if (val == 0) {
+    cout << "I'm 0!" << endl;
+  }
+  bool isImpossibleValue = impossibleValues.find(val) != impossibleValues.end();
+  bool alreadyInPossibleValues =
+      find(possibleValues.begin(), possibleValues.end(), val) !=
+      possibleValues.end();
+  if (!isImpossibleValue && !alreadyInPossibleValues) {
+    possibleValues.push_back(val);
+    if (currentPossibleValueIdx == -1) {
+      currentPossibleValueIdx = 0;
+    }
   }
 }
 
 void Cell::removeCurrentPossibleValue() {
-  set<int>::iterator nextIt = next(currentPossibleValue, 1);
-  possibleValues.erase(currentPossibleValue);
-  currentPossibleValue = nextIt;
+  possibleValues.erase(possibleValues.begin() + currentPossibleValueIdx);
+  if (currentPossibleValueIdx < possibleValues.size() - 1) {
+    currentPossibleValueIdx++;
+  }
+}
+
+void Cell::clearPossibleValues() {
+  possibleValues.clear();
+  currentPossibleValueIdx = -1;
 }
 
 void Cell::print() const {
