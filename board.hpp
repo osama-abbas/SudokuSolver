@@ -14,6 +14,7 @@ class Board {
         int minPossibleValues;
         int minPossibleGridNum;
         int minPossibleCellNum;
+        Cell* mostRecentlyAssignedCell;
         map<int, vector<Cell*>> rows;
         map<int, vector<Cell*>> cols;
         map<int, set<int>> rowValues;
@@ -34,12 +35,13 @@ class Board {
         bool rowContains(int row, int value);
         bool colContains(int col, int value);
         bool gridContains(int grid, int value);
-        void clearPossibleValues();
+        // void clearPossibleValues();
         set<int> findCommonUnassignedValues(set<int> set1, set<int> set2, set<int> set3);
         CellLocation findCell(Cell* cell);
         void addCellValueToContainers(Cell* cell);
         void removeCellValueFromContainers(Cell* cell);
-        void clearAllPossibleValues();
+        // void clearAllPossibleValues();
+        void removeUnassignedPossibleCellsFromStack();
 
     public:
         Board();

@@ -28,8 +28,6 @@ void Cell::unassign() {
   assigned = false;
   assignedPossibleValue = false;
   value = 0;
-  possibleValues.clear();
-  currentPossibleValueIdx = -1;
 }
 
 void Cell::printPossibleValues() {
@@ -58,8 +56,9 @@ bool Cell::incrementCurrentPossibleValue() {
 }
 
 int Cell::assignCurrentPossibleValue() {
-  cout << "Assigning current possible value " << " to "
-       << possibleValues[currentPossibleValueIdx] << endl;
+  cout << "Possible values: ";
+  printPossibleValues();
+  cout << "Assigning "<< possibleValues[currentPossibleValueIdx] << endl;
   assign(possibleValues[currentPossibleValueIdx], false);
   assignedPossibleValue = true;
   return possibleValues[currentPossibleValueIdx];
@@ -86,11 +85,6 @@ void Cell::removeCurrentPossibleValue() {
   if (currentPossibleValueIdx < possibleValues.size() - 1) {
     currentPossibleValueIdx++;
   }
-}
-
-void Cell::clearPossibleValues() {
-  possibleValues.clear();
-  currentPossibleValueIdx = -1;
 }
 
 void Cell::print() const {
