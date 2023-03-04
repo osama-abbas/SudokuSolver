@@ -58,7 +58,8 @@ bool Cell::incrementCurrentPossibleValue() {
 }
 
 int Cell::assignCurrentPossibleValue() {
-  cout << "Assigning current possible value " << " to "
+
+  cout << "Assigning current possible value to "
        << possibleValues[currentPossibleValueIdx] << endl;
   assign(possibleValues[currentPossibleValueIdx], false);
   assignedPossibleValue = true;
