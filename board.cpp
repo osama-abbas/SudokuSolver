@@ -1,6 +1,5 @@
 #include <iostream>
 #include <limits>
-#include <windows.h>
 
 #include "board.hpp"
 
