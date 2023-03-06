@@ -43,7 +43,8 @@ bool Cell::incrementCurrentPossibleValue() {
   printPossibleValues();
   if (currentPossibleValueIdx != -1 &&
       currentPossibleValueIdx < possibleValues.size() - 1) {
-    cout << "Incrementing current possible value from "
+    cout << "Cell (" << location.row << ", " << location.col << ") ";
+    cout << "incrementing current possible value from "
          << possibleValues[currentPossibleValueIdx];
     currentPossibleValueIdx++;
     cout << " to " << possibleValues[currentPossibleValueIdx] << endl;
@@ -69,15 +70,17 @@ void Cell::addPossibleValue(int val) {
     cout << "I'm 0!" << endl;
   }
   bool isImpossibleValue = impossibleValues.find(val) != impossibleValues.end();
-  bool alreadyInPossibleValues =
-      find(possibleValues.begin(), possibleValues.end(), val) !=
-      possibleValues.end();
+  bool alreadyInPossibleValues = find(possibleValues.begin(), possibleValues.end(), val) != possibleValues.end();
   if (!isImpossibleValue && !alreadyInPossibleValues) {
     possibleValues.push_back(val);
     if (currentPossibleValueIdx == -1) {
       currentPossibleValueIdx = 0;
     }
   }
+}
+
+void Cell::clearPossibleValues() {
+  possibleValues.clear();
 }
 
 void Cell::removeCurrentPossibleValue() {
