@@ -41,7 +41,11 @@ set<int> Grid::getUnassigedValues() {
   return unassignedVals;
 }
 
-void Grid::addValue(int val) { values.insert(val); }
+void Grid::addValue(int val) { 
+  cout << "I'm in" << endl; 
+  cout << "&values: " << &values << endl;
+  values.insert(val); 
+}
 
 void Grid::removeValue(int val) { values.erase(val); }
 

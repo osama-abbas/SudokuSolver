@@ -7,21 +7,19 @@
 
 struct CellLocation;
 
-// struct CellComp {
-//   bool operator() (const Cell &lhs, const Cell &rhs) {
-//     return lhs.getPossibleValues().size() < rhs.getPossibleValues().size();
-//   }
-// };
+struct CellComp {
+  bool operator() (Cell* lhs, Cell* rhs) {
+    return lhs->getPossibleValues().size() < rhs->getPossibleValues().size();
+  }
+};
 
 class Board {
     private:
+        bool doPrint = true;
         Grid grids[9];
-        bool assignedPossibleValue = false;
         int minPossibleValues;
-        int minPossibleGridNum;
-        int minPossibleCellNum;
-        set<Cell*> minPossibleValuesSet;
-        set<Cell*>::iterator minPossibleValuesCellItr;
+        bool assignedPossibleValue = false;
+        Cell* minPossibleValueCell;
         bool iteratorInitialized = false;
         Cell* mostRecentlyAssignedCell;
         map<int, vector<Cell*>> rows;
@@ -50,6 +48,8 @@ class Board {
         void addCellValueToContainers(Cell* cell);
         void removeCellValueFromContainers(Cell* cell);
         void removeUnassignedPossibleCellsFromStack();
+        void gotoNextAssignedPossibleValueCell(Cell* possibleValCell);
+        bool incrementCurrentPossibleCell(Cell* possibleValCell);
 
     public:
         Board();

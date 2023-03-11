@@ -36,14 +36,14 @@ class Cell {
         int getValue() { return value; }
         bool isAssigned() { return assigned; }
         bool isAssignedPossibleValue() { return assignedPossibleValue; }
-        vector<int> getPossibleValues() const { return possibleValues; }
+        vector<int>& getPossibleValues() { return possibleValues; }
         void addPossibleValue(int val);
         void clearPossibleValues();
         void addImpossibleValue(int val) { impossibleValues.insert(val); }
         void printPossibleValues();
         int getCurrentPossibleValue() { return possibleValues[currentPossibleValueIdx]; }
         bool incrementCurrentPossibleValue();
+        bool canIncrementCurrentPossibleValue();
         int assignCurrentPossibleValue();
-        void removeCurrentPossibleValue();
         void print() const;
 };

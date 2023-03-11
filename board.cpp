@@ -29,8 +29,11 @@ void Board::computePossibleValues() {
     bool startOver = false;
     for (int g = 0; g < 9; g++) {
       if (startOver) {
+        clearPossibleValues();
         g = 0;
         startOver = false;
+        minPossibleValueCell = nullptr;
+        minPossibleValues = numeric_limits<int>::max();
         print();
       }
       Grid *grid = &grids[g];
@@ -50,71 +53,23 @@ void Board::computePossibleValues() {
           printSet(unassignedValues);
           int singleUnassigedValue = 0;
           if (unassignedValues.size() == 0) {
-            /*
-            Our last assigned possible value is incorrect
-
-            Grab the top-most cell and check if it has a possible value assigned to it.
-            This means at this cell, we assigned the next on its possible value list.
-            
-            For every top-most cell that is not assigned a possible value, pop it from the
-            stack and unassign it.
-            
-            Once we get to a cell with a possible value assigned, attempt to assign its next
-            possible value and start over.
-            
-            If there are no more possible values in the list, we need to pop it, unassign it,
-            then continue going down the stack.
-            
-            Once we get to the cell at the bottom of the stack, we can mark the current 
-            possible value (before incrementing it) as an impossible value. Then add that
-            value to the cell's impossible values list and remove it from the possible value list.
-            */
-            
+            print();
             Cell *possibleValCell = possibleValueCellStack.top();
-            bool assignedPossibleVal = possibleValCell->isAssignedPossibleValue();
-            while (!assignedPossibleVal) {
+            gotoNextAssignedPossibleValueCell(possibleValCell);
+            possibleValCell = possibleValueCellStack.top();
+
+            /*
+            If we've reached the last possible value for this cell,
+            we want to remove it from the possibleValueCellStack 
+            */
+
+            bool incrementedPossibleVal = incrementCurrentPossibleCell(possibleValCell);
+            while (!possibleValueCellStack.empty() && !incrementedPossibleVal) {
               possibleValueCellStack.pop();
-              cout << "possibleValueCellStack size: " << possibleValueCellStack.size() << endl;
-              removeCellValueFromContainers(possibleValCell);
-
-              if (possibleValueCellStack.size() == 1) {
-                // Were at the very bottom of the cell stack.
-                // So we need to mark the current value as an impossible value.
-                possibleValCell->addImpossibleValue(possibleValCell->getCurrentPossibleValue());
-
-                // Remove it from the possible value list
-                possibleValCell->removeCurrentPossibleValue();
-              } else if (!possibleValueCellStack.empty()) {
-                possibleValCell = possibleValueCellStack.top();
-                assignedPossibleVal = possibleValCell->isAssignedPossibleValue();
-
-                if (assignedPossibleVal) {
-                  removeCellValueFromContainers(possibleValCell);
-                }
-              } else {
-                cout << "possibleValueCellStack is empty - WE SHOULD NEVER COME IN HERE!!!" << endl;
-                break;
-              }
-            }
-
-            // Try to increment to the next possible value
-            if (possibleValCell->incrementCurrentPossibleValue()) {
-              // If successful, we need to add the cell value to all containers
-              CellLocation loc = findLocation(possibleValCell);
-              addCellValueToContainers(possibleValCell);
-              cout << "(" << loc.row << ", " << loc.col << ") -> " << possibleValCell->getValue() << endl;
-              print();
-              startOver = true;
-              break;
-            } else {
-              // If that was the last possible value for the cell,
-              // we need to pop it, unassign it, then continue going down the stack.
-              possibleValueCellStack.pop();
-              cout << "possibleValueCellStack size: " << possibleValueCellStack.size() << endl;
-              removeCellValueFromContainers(possibleValCell);
-              print();
-              possibleValCell->unassign();
-              cout << "Last possible value for cell, ..." << endl;
+              possibleValCell = possibleValueCellStack.top();
+              gotoNextAssignedPossibleValueCell(possibleValCell);
+              possibleValCell = possibleValueCellStack.top();
+              incrementedPossibleVal = incrementCurrentPossibleCell(possibleValCell);
             }
 
             startOver = true;
@@ -138,11 +93,11 @@ void Board::computePossibleValues() {
 
             cout << "(" << row << ", " << col << ") possible values: ";
             cell->printPossibleValues();
-          }
-
-          int numPossibleValues = cell->getPossibleValues().size();
-          if (!cell->isAssigned() && numPossibleValues > 1) {
-            minPossibleValuesSet.insert(cell);
+            int numPossibleValues = cell->getPossibleValues().size();
+            if (numPossibleValues < minPossibleValues) {
+              minPossibleValues = numPossibleValues; 
+              minPossibleValueCell = cell;
+            }
           }
         }
       }
@@ -150,6 +105,11 @@ void Board::computePossibleValues() {
 
     numUnassignedCells = countUnassignedCells();
     cout << "Num unassigned cells: " << numUnassignedCells << endl;
+    if (numUnassignedCells == 0) {
+      cout << "BOARD SOLVED!!!" << endl;
+      print();
+      exit(0);
+    }
     if (prevCount == numUnassignedCells) {
       noChange = true;
       break;
@@ -165,37 +125,44 @@ void Board::computePossibleValues() {
   }
 }
 
-void Board::assignPossibleValues() {
-  if (!iteratorInitialized){
-    minPossibleValuesCellItr = minPossibleValuesSet.begin();
-  } else {
-    minPossibleValuesCellItr++;
+bool Board::incrementCurrentPossibleCell(Cell* possibleValCell) {
+  removeCellValueFromContainers(possibleValCell);
+  if (possibleValCell->incrementCurrentPossibleValue()) {
+    addCellValueToContainers(possibleValCell);
+    return true;
   }
-  Cell* cell = *minPossibleValuesCellItr;
 
-  int possibleVal = cell->getCurrentPossibleValue();
+  return false;
+}
 
-  CellLocation loc = cell->getLocation();
+void Board::gotoNextAssignedPossibleValueCell(Cell* possibleValCell) {
+  bool assignedPossibleVal = possibleValCell->isAssignedPossibleValue();
+  while (!assignedPossibleVal) {
+    possibleValueCellStack.pop();
+    cout << "possibleValueCellStack size: " << possibleValueCellStack.size() << endl;
+    removeCellValueFromContainers(possibleValCell);
 
-  grids[loc.grid].addValue(possibleVal);
-  rowValues.find(loc.row)->second.insert(possibleVal);
-  colValues.find(loc.col)->second.insert(possibleVal);
-
-  possibleValueCellStack.push(cell);
-  cell->assignCurrentPossibleValue();
-
-  cout << "(" << loc.row << ", " << loc.col << ") assigned possible value " << possibleVal << endl;
-  print();
-
-  minPossibleValues = numeric_limits<int>::max();
-  computePossibleValues();
+    if (possibleValueCellStack.size() == 1) {
+      // Were at the very bottom of the cell stack.
+      // So we need to mark the current value as an impossible value.
+      possibleValCell->addImpossibleValue(possibleValCell->getCurrentPossibleValue());
+      assignedPossibleVal = true;
+    } else if (!possibleValueCellStack.empty()) {
+      possibleValCell = possibleValueCellStack.top();
+      assignedPossibleVal = possibleValCell->isAssignedPossibleValue();
+    } else {
+      cout << "possibleValueCellStack is empty - WE SHOULD NEVER COME IN HERE!!!" << endl;
+      exit(0);
+      break;
+    }
+  }
 }
 
 void Board::clearPossibleValues() {
   for (int g = 0; g < 9; g++) {
     for (int c = 0; c < 9; c++) {
       Cell* cell = grids[g].getCell(c);
-      if (cell->isAssigned()) {
+      if (!cell->isAssigned()) {
         cell->clearPossibleValues();
       }
     }
@@ -204,7 +171,7 @@ void Board::clearPossibleValues() {
 
 void Board::addCellValueToContainers(Cell *cell) {
   int cellValue = cell->getValue();
-  CellLocation loc = findLocation(cell);
+  CellLocation loc = cell->getLocation();
   grids[loc.grid].addValue(cellValue);
   rowValues.find(loc.row)->second.insert(cellValue);
   colValues.find(loc.col)->second.insert(cellValue);
@@ -212,12 +179,34 @@ void Board::addCellValueToContainers(Cell *cell) {
 
 void Board::removeCellValueFromContainers(Cell *cell) {
   int cellValue = cell->getValue();
-  CellLocation loc = findLocation(cell);
+  CellLocation loc = cell->getLocation();
   grids[loc.grid].removeValue(cellValue);
   rowValues.find(loc.row)->second.erase(cellValue);
   colValues.find(loc.col)->second.erase(cellValue);
   cell->unassign();
   cout << "(" << loc.row << ", " << loc.col << ") unassigned" << endl;
+}
+
+void Board::assignPossibleValues() {
+  cout << "Entering Board::assignPossibleValues()" << endl;
+  int possibleVal = minPossibleValueCell->getCurrentPossibleValue();
+  cout << "Line 193" << endl;
+  CellLocation loc = minPossibleValueCell->getLocation();
+  cout << "Line 195" << endl;
+  grids[loc.grid].addValue(possibleVal);
+  cout << "Line 196" << endl;
+  rowValues.find(loc.row)->second.insert(possibleVal);
+  cout << "Line 197" << endl;
+  colValues.find(loc.col)->second.insert(possibleVal);
+  cout << "Line 199" << endl;
+  possibleValueCellStack.push(minPossibleValueCell);
+  minPossibleValueCell->assignCurrentPossibleValue();
+  cout << "Line 202" << endl;
+  cout << "(" << loc.row << ", " << loc.col << ") assigned possible value " << possibleVal << endl;
+  print();
+
+  minPossibleValues = numeric_limits<int>::max();
+  computePossibleValues();
 }
 
 void Board::printSet(set<int> s) {
@@ -326,27 +315,29 @@ int Board::countUnassignedCells() {
 }
 
 void Board::print() {
-  // 1 2 3 | 4 5 6 | 7 8 9 |
-  // 1 2 3 | 4 5 6 | 7 8 9 |
-  // 1 2 3 | 4 5 6 | 7 8 9 |
-  // -----------------------
-  cout << "-------------------------" << endl;
-  for (int i = 0; i < 9; i++) {
-    vector<Cell *> cells = getRow(i);
-    for (int c = 0; c < 9; c++) {
-      if (c == 0)
-        cout << "| ";
-      if (cells[c]->isAssigned())
-        cout << cells[c]->getValue() << " ";
-      else
-        cout << "X ";
-
-      if (c % 3 == 2)
-        cout << "| ";
+  if (doPrint) {
+    // 1 2 3 | 4 5 6 | 7 8 9 |
+    // 1 2 3 | 4 5 6 | 7 8 9 |
+    // 1 2 3 | 4 5 6 | 7 8 9 |
+    // -----------------------
+    cout << "-------------------------" << endl;
+    for (int i = 0; i < 9; i++) {
+      vector<Cell *> cells = getRow(i);
+      for (int c = 0; c < 9; c++) {
+        if (c == 0)
+          cout << "| ";
+        if (cells[c]->isAssigned())
+          cout << cells[c]->getValue() << " ";
+        else
+          cout << "X ";
+  
+        if (c % 3 == 2)
+          cout << "| ";
+      }
+      cout << endl;
+      if (i % 3 == 2)
+        cout << "-------------------------" << endl;
     }
-    cout << endl;
-    if (i % 3 == 2)
-      cout << "-------------------------" << endl;
   }
 }
 
@@ -590,13 +581,14 @@ bool Board::gridContains(int grid, int value) {
   return itr != gridValues.end();
 }
 
-set<int> Board::findCommonUnassignedValues(set<int> set1, set<int> set2, set<int> set3) {
-  cout << "Grid unassigned values: ";
-  printSet(set1);
-  cout << "Row unassigned values: ";
-  printSet(set2);
-  cout << "Col unassigned values: ";
-  printSet(set3);
+set<int> Board::findCommonUnassignedValues(set<int> set1, set<int> set2,
+                                                set<int> set3) {
+  // cout << "Grid unassigned values: ";
+  // printSet(set1);
+  // cout << "Row unassigned values: ";
+  // printSet(set2);
+  // cout << "Col unassigned values: ";
+  // printSet(set3);
   set<int> unassignedValues;
   for (int i = 1; i < 10; i++) {
     bool foundInGridValues = set1.find(i) != set1.end();

@@ -39,7 +39,7 @@ void Cell::printPossibleValues() {
 }
 
 bool Cell::incrementCurrentPossibleValue() {
-  cout << "Possible values: ";
+  cout << "(" << location.row << ", " << location.col << ") Possible values: ";
   printPossibleValues();
   if (currentPossibleValueIdx != -1 &&
       currentPossibleValueIdx < possibleValues.size() - 1) {
@@ -51,13 +51,24 @@ bool Cell::incrementCurrentPossibleValue() {
     assignCurrentPossibleValue();
     return true;
   } else {
+    unassign();
     cout << "Unable to increment current possible value" << endl;
+    possibleValues.clear();
+    currentPossibleValueIdx = -1;
     return false;
   }
 }
 
+bool Cell::canIncrementCurrentPossibleValue() {
+  return currentPossibleValueIdx != -1 && currentPossibleValueIdx < possibleValues.size() - 1;
+}
+
 int Cell::assignCurrentPossibleValue() {
   cout << "Possible values: ";
+  if (possibleValues.empty()) {
+    cout << "I HAVE NO POSSIBLE VALUES!!!!";
+    exit(0);
+  }
   printPossibleValues();
   cout << "Assigning "<< possibleValues[currentPossibleValueIdx] << endl;
   assign(possibleValues[currentPossibleValueIdx], false);
@@ -81,13 +92,6 @@ void Cell::addPossibleValue(int val) {
 
 void Cell::clearPossibleValues() {
   possibleValues.clear();
-}
-
-void Cell::removeCurrentPossibleValue() {
-  possibleValues.erase(possibleValues.begin() + currentPossibleValueIdx);
-  if (currentPossibleValueIdx < possibleValues.size() - 1) {
-    currentPossibleValueIdx++;
-  }
 }
 
 void Cell::print() const {
